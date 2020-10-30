@@ -6,7 +6,7 @@ namespace WebApplication
 {
     public class WeatherForecast : IComparable<WeatherForecast>
     {
-        [NotJson]
+      
         public DateTime Date { get; set; }
 
         public int TemperatureC { get; set; }
