@@ -9,14 +9,15 @@ using System.Text;
 namespace APILibrary.Core.Controllers
 {
     
-    public class ControllerBaseAPI : ControllerBase
+    public abstract class ControllerBaseAPI<T> : ControllerBase //where T: new()
     {
 
-        public IEnumerable<dynamic> ToJson(IEnumerable<object> tab)
+        public IEnumerable<dynamic> ToJsonList(IEnumerable<T> tab)
         {
             var tabNew = tab.Select((x) => {
                 var expo = new ExpandoObject() as IDictionary<string, object>;
-                var collectionType = tab.GetType().GenericTypeArguments[0];
+                //var collectionType = tab.GetType().GenericTypeArguments[0];
+                var collectionType = typeof(T);
                 foreach (var prop in collectionType.GetProperties())
                 {
                     var isPresentAttribute = prop.CustomAttributes
@@ -28,6 +29,19 @@ namespace APILibrary.Core.Controllers
                 return expo;
             });
             return tabNew;
+        }
+
+        public dynamic ToJson(T item)
+        {
+            var expo = new ExpandoObject() as IDictionary<string, object>;
+            foreach (var prop in typeof(T).GetProperties())
+            {
+                var isPresentAttribute = prop.CustomAttributes
+                .Any(x => x.AttributeType == typeof(NotJsonAttribute));
+                if (!isPresentAttribute)
+                    expo.Add(prop.Name, prop.GetValue(item));
+            }
+            return expo;
         }
     }
 }

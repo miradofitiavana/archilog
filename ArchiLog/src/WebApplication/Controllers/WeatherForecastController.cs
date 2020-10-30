@@ -12,7 +12,7 @@ namespace WebApplication.Controllers
 {
     [ApiController]
     [Route("[controller]")]
-    public class WeatherForecastController : ControllerBaseAPI
+    public class WeatherForecastController : ControllerBaseAPI<WeatherForecast>
     {
         private static readonly string[] Summaries = new[]
         {
@@ -26,10 +26,6 @@ namespace WebApplication.Controllers
             _logger = logger;
         }
 
-        private object test(object o)
-        {
-            return o;
-        }
 
         [HttpGet]
         public Object Get(string propertyName)
@@ -42,7 +38,7 @@ namespace WebApplication.Controllers
                 Summary = Summaries[rng.Next(Summaries.Length)]
             })
             .ToList();
-            return ToJson(tab);
+            return ToJsonList(tab);
         }
     }
 }
