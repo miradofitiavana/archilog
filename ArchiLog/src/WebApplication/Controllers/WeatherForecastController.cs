@@ -7,6 +7,7 @@ using APILibrary.Core.Attributes;
 using APILibrary.Core.Controllers;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using WebApplication.Data;
 
 namespace WebApplication.Controllers
 {
@@ -20,10 +21,12 @@ namespace WebApplication.Controllers
         };
 
         private readonly ILogger<WeatherForecastController> _logger;
+        private readonly EatDbContext _db;
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger)
+        public WeatherForecastController(ILogger<WeatherForecastController> logger, EatDbContext db)
         {
             _logger = logger;
+            _db = db;
         }
 
 
