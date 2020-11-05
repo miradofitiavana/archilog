@@ -1,20 +1,54 @@
 ﻿using APILibrary.Core.Attributes;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 
 namespace APILibrary.Core.Controllers
 {
-    
-    public abstract class ControllerBaseAPI<T> : ControllerBase //where T: new()
+    [Route("api/[controller]")]
+    [ApiController]
+    public abstract class ControllerBaseAPI<T> : ControllerBase where T : class
     {
+        protected readonly DbContext _context;
 
-        public IEnumerable<dynamic> ToJsonList(IEnumerable<T> tab)
+        public ControllerBaseAPI(DbContext context)
         {
-            var tabNew = tab.Select((x) => {
+            this._context = context;
+        }
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<T>>> GetAllAsync()
+        {
+            var results = await _context.Set<T>().ToListAsync();
+            string type = typeof(T).Name;
+            return results;
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<T>> CreateItem([FromBody] T item)
+        {
+            if (ModelState.IsValid)
+            {
+                _context.Add(item);
+                await _context.SaveChangesAsync();
+                return item;
+            }
+            else
+            {
+                return BadRequest(ModelState);
+            }
+        }
+
+
+        protected IEnumerable<dynamic> ToJsonList(IEnumerable<T> tab)
+        {
+            var tabNew = tab.Select((x) =>
+            {
                 var expo = new ExpandoObject() as IDictionary<string, object>;
                 //var collectionType = tab.GetType().GenericTypeArguments[0];
                 var collectionType = typeof(T);
@@ -31,7 +65,7 @@ namespace APILibrary.Core.Controllers
             return tabNew;
         }
 
-        public dynamic ToJson(T item)
+        protected dynamic ToJson(T item)
         {
             var expo = new ExpandoObject() as IDictionary<string, object>;
             foreach (var prop in typeof(T).GetProperties())

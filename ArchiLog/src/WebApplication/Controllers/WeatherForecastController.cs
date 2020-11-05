@@ -23,10 +23,9 @@ namespace WebApplication.Controllers
         private readonly ILogger<WeatherForecastController> _logger;
         private readonly EatDbContext _db;
 
-        public WeatherForecastController(ILogger<WeatherForecastController> logger, EatDbContext db)
+        public WeatherForecastController(ILogger<WeatherForecastController> logger, EatDbContext db):base(db)
         {
             _logger = logger;
-            _db = db;
         }
 
 

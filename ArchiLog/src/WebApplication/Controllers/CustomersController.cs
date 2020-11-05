@@ -11,18 +11,15 @@ using WebApplication.Models;
 
 namespace WebApplication.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
+    
     public class CustomersController : ControllerBaseAPI<Customer>
     {
-        private readonly EatDbContext _context;
 
-        public CustomersController(EatDbContext context)
+        public CustomersController(EatDbContext context):base(context)
         {
-            this._context = context;
         }
 
-        [HttpGet]
+        /*[HttpGet]
         public async Task<ActionResult<IEnumerable<Customer>>> GetAllAsync()
         {
             var results = await _context.Customers.ToListAsync();
@@ -42,6 +39,6 @@ namespace WebApplication.Controllers
             {
                 return BadRequest(ModelState);
             }
-        }
+        }*/
     }
 }

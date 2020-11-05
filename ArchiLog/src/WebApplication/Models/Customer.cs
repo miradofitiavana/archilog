@@ -10,7 +10,7 @@ namespace WebApplication.Models
     {
         public int ID { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "l'email est obligatoire")]
         public string Email { get; set; }
         [Required]
         public string Phone { get; set; }
