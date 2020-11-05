@@ -18,5 +18,7 @@ namespace WebApplication.Data
         }
 
         public DbSet<Pizza> Pizzas { get; set; }
+
+        public DbSet<Customer> Customers { get; set; }
     }
 }
