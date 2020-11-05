@@ -1,4 +1,6 @@
-﻿using System;
+﻿using APILibrary.Core.Attributes;
+using APILibrary.Core.Models;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
@@ -6,10 +8,11 @@ using System.Threading.Tasks;
 
 namespace WebApplication.Models
 {
-    public class Customer
+    public class Customer : ModelBase
     {
-        public int ID { get; set; }
+        //public int ID { get; set; }
 
+        //[NotJson]
         [Required(ErrorMessage = "l'email est obligatoire")]
         public string Email { get; set; }
         [Required]
