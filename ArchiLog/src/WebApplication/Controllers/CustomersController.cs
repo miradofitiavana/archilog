@@ -12,20 +12,20 @@ using WebApplication.Models;
 namespace WebApplication.Controllers
 {
     
-    public class CustomersController : ControllerBaseAPI<Customer>
+    public class CustomersController : ControllerBaseAPI<Customer, EatDbContext>
     {
 
         public CustomersController(EatDbContext context):base(context)
         {
         }
 
-        /*[HttpGet]
-        public async Task<ActionResult<IEnumerable<Customer>>> GetAllAsync()
+        /*[HttpGet("search")]
+        public async Task<ActionResult<IEnumerable<Customer>>> SearchCustomersAsync()
         {
             var results = await _context.Customers.ToListAsync();
             return results;
-        }
-
+        }*/
+        /*
         [HttpPost]
         public async Task<ActionResult<Customer>> CreateCustomer([FromBody]Customer item)
         {

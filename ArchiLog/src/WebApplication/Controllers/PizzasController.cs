@@ -13,7 +13,7 @@ namespace WebApplication.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class PizzasController : ControllerBaseAPI<Pizza>
+    public class PizzasController : ControllerBaseAPI<Pizza, EatDbContext>
     {
 
         public PizzasController(EatDbContext context):base(context)

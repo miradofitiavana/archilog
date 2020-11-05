@@ -12,25 +12,24 @@ namespace APILibrary.Core.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public abstract class ControllerBaseAPI<T> : ControllerBase where T : class
+    public abstract class ControllerBaseAPI<TModel, TContext> : ControllerBase where TModel : class where TContext : DbContext
     {
-        protected readonly DbContext _context;
+        protected readonly TContext _context;
 
-        public ControllerBaseAPI(DbContext context)
+        public ControllerBaseAPI(TContext context)
         {
             this._context = context;
         }
 
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<T>>> GetAllAsync()
+        public async Task<ActionResult<IEnumerable<TModel>>> GetAllAsync()
         {
-            var results = await _context.Set<T>().ToListAsync();
-            string type = typeof(T).Name;
+            var results = await _context.Set<TModel>().ToListAsync();
             return results;
         }
 
         [HttpPost]
-        public async Task<ActionResult<T>> CreateItem([FromBody] T item)
+        public async Task<ActionResult<TModel>> CreateItem([FromBody] TModel item)
         {
             if (ModelState.IsValid)
             {
@@ -45,13 +44,13 @@ namespace APILibrary.Core.Controllers
         }
 
 
-        protected IEnumerable<dynamic> ToJsonList(IEnumerable<T> tab)
+        protected IEnumerable<dynamic> ToJsonList(IEnumerable<TModel> tab)
         {
             var tabNew = tab.Select((x) =>
             {
                 var expo = new ExpandoObject() as IDictionary<string, object>;
                 //var collectionType = tab.GetType().GenericTypeArguments[0];
-                var collectionType = typeof(T);
+                var collectionType = typeof(TModel);
                 foreach (var prop in collectionType.GetProperties())
                 {
                     var isPresentAttribute = prop.CustomAttributes
@@ -65,10 +64,10 @@ namespace APILibrary.Core.Controllers
             return tabNew;
         }
 
-        protected dynamic ToJson(T item)
+        protected dynamic ToJson(TModel item)
         {
             var expo = new ExpandoObject() as IDictionary<string, object>;
-            foreach (var prop in typeof(T).GetProperties())
+            foreach (var prop in typeof(TModel).GetProperties())
             {
                 var isPresentAttribute = prop.CustomAttributes
                 .Any(x => x.AttributeType == typeof(NotJsonAttribute));
