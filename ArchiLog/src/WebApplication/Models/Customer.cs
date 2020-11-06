@@ -12,7 +12,7 @@ namespace WebApplication.Models
     {
         //public int ID { get; set; }
 
-        //[NotJson]
+        [NotJson]
         [Required(ErrorMessage = "l'email est obligatoire")]
         public string Email { get; set; }
         [Required]
