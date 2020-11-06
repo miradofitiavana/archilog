@@ -75,16 +75,45 @@ namespace APILibrary.Core.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK)]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [HttpGet("{id}")]
-        public virtual async Task<ActionResult<TModel>> GetById([FromRoute] int id)
+        public virtual async Task<ActionResult<TModel>> GetById([FromRoute] int id, [FromQuery] string fields)
         {
             TModel result = await _context.Set<TModel>().FindAsync(id);
             if (result != null)
             {
-                return Ok(ToJson(result));
+                //solution 1
+                if (!string.IsNullOrWhiteSpace(fields))
+                {
+                    var tabFields = fields.Split(',');
+                   
+                        var expo = new ExpandoObject() as IDictionary<string, object>;
+                        var modelType = typeof(TModel);
+
+                        foreach (var field in tabFields)
+                        {
+                            var prop = modelType.GetProperty(field, BindingFlags.Public |
+                                BindingFlags.IgnoreCase | BindingFlags.Instance);
+                            if (prop != null)
+                            {
+                                //solution 1B
+                                /*var isPresentAttribute = prop.CustomAttributes
+                                    .Any(x => x.AttributeType == typeof(NotJsonAttribute));
+                                if(!isPresentAttribute)*/
+                                expo.Add(prop.Name, prop.GetValue(result));
+                            }
+                            else
+                            {
+                                throw new Exception($"Property {field} does not exist.");
+                            }
+                        }
+                    //solution 1B
+                    return Ok(ToJson(expo));
+                }
+                else
+                    return Ok(ToJson(result));
             }
             else
             {
-                return NotFound(new { Message = $"ID {id} not found" });
+                    return NotFound(new { Message = $"ID {id} not found" });
             }
         }
 
@@ -179,51 +208,42 @@ namespace APILibrary.Core.Controllers
         {
             var tabNew = tab.Select((x) =>
             {
-                var expo = new ExpandoObject() as IDictionary<string, object>;
-               //var collectionType = tab.GetType().GenericTypeArguments[0];
-
-                var collectionType = typeof(TModel);
-
-                IDictionary<string, object> dico = x as IDictionary<string, object>;
-                if (dico != null)
-                {
-                    foreach (var propDyn in dico)
-                    {
-                        var propInTModel = collectionType.GetProperty(propDyn.Key, BindingFlags.Public |
-                                BindingFlags.IgnoreCase | BindingFlags.Instance);
-
-                        var isPresentAttribute = propInTModel.CustomAttributes
-                        .Any(x => x.AttributeType == typeof(NotJsonAttribute));
-
-                        if (!isPresentAttribute)
-                            expo.Add(propDyn.Key, propDyn.Value);
-                    }
-                }
-                else
-                {
-                    foreach (var prop in collectionType.GetProperties())
-                    {
-                        var isPresentAttribute = prop.CustomAttributes
-                        .Any(x => x.AttributeType == typeof(NotJsonAttribute));
-
-                        if (!isPresentAttribute)
-                            expo.Add(prop.Name, prop.GetValue(x));
-                    }
-                }
-                return expo;
+                return ToJson(x);
             });
             return tabNew;
         }
 
-        protected dynamic ToJson(TModel item)
+        protected dynamic ToJson(dynamic item)
         {
             var expo = new ExpandoObject() as IDictionary<string, object>;
-            foreach (var prop in typeof(TModel).GetProperties())
+
+            var collectionType = typeof(TModel);
+
+            IDictionary<string, object> dico = item as IDictionary<string, object>;
+            if (dico != null)
             {
-                var isPresentAttribute = prop.CustomAttributes
-                .Any(x => x.AttributeType == typeof(NotJsonAttribute));
-                if (!isPresentAttribute)
-                    expo.Add(prop.Name, prop.GetValue(item));
+                foreach (var propDyn in dico)
+                {
+                    var propInTModel = collectionType.GetProperty(propDyn.Key, BindingFlags.Public |
+                            BindingFlags.IgnoreCase | BindingFlags.Instance);
+
+                    var isPresentAttribute = propInTModel.CustomAttributes
+                    .Any(x => x.AttributeType == typeof(NotJsonAttribute));
+
+                    if (!isPresentAttribute)
+                        expo.Add(propDyn.Key, propDyn.Value);
+                }
+            }
+            else
+            {
+                foreach (var prop in collectionType.GetProperties())
+                {
+                    var isPresentAttribute = prop.CustomAttributes
+                    .Any(x => x.AttributeType == typeof(NotJsonAttribute));
+
+                    if (!isPresentAttribute)
+                        expo.Add(prop.Name, prop.GetValue(item));
+                }
             }
             return expo;
         }
