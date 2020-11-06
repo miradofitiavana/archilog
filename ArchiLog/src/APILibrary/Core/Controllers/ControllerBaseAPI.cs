@@ -49,9 +49,10 @@ namespace APILibrary.Core.Controllers
                             BindingFlags.IgnoreCase | BindingFlags.Instance);
                         if (prop != null)
                         {
-                            var isPresentAttribute = prop.CustomAttributes
+                            //solution 1B
+                            /*var isPresentAttribute = prop.CustomAttributes
                                 .Any(x => x.AttributeType == typeof(NotJsonAttribute));
-                            if(!isPresentAttribute)
+                            if(!isPresentAttribute)*/
                                 expo.Add(prop.Name, prop.GetValue(x));
                         }
                         else
@@ -63,7 +64,8 @@ namespace APILibrary.Core.Controllers
 
                     return expo;
                 });
-                return Ok(tabNew);
+                //solution 1A
+                return Ok(ToJsonList(tabNew));
             }
             //fin solution 1
 
@@ -179,20 +181,34 @@ namespace APILibrary.Core.Controllers
             {
                 var expo = new ExpandoObject() as IDictionary<string, object>;
                //var collectionType = tab.GetType().GenericTypeArguments[0];
+
                 var collectionType = typeof(TModel);
 
                 IDictionary<string, object> dico = x as IDictionary<string, object>;
-                
-                foreach (var propDyn in dico)
+                if (dico != null)
                 {
-                    var propInTModel = collectionType.GetProperty(propDyn.Key, BindingFlags.Public |
-                            BindingFlags.IgnoreCase | BindingFlags.Instance);
+                    foreach (var propDyn in dico)
+                    {
+                        var propInTModel = collectionType.GetProperty(propDyn.Key, BindingFlags.Public |
+                                BindingFlags.IgnoreCase | BindingFlags.Instance);
 
-                    var isPresentAttribute = propInTModel.CustomAttributes
-                    .Any(x => x.AttributeType == typeof(NotJsonAttribute));
+                        var isPresentAttribute = propInTModel.CustomAttributes
+                        .Any(x => x.AttributeType == typeof(NotJsonAttribute));
 
-                    if (!isPresentAttribute)
-                        expo.Add(propDyn.Key, propDyn.Value);
+                        if (!isPresentAttribute)
+                            expo.Add(propDyn.Key, propDyn.Value);
+                    }
+                }
+                else
+                {
+                    foreach (var prop in collectionType.GetProperties())
+                    {
+                        var isPresentAttribute = prop.CustomAttributes
+                        .Any(x => x.AttributeType == typeof(NotJsonAttribute));
+
+                        if (!isPresentAttribute)
+                            expo.Add(prop.Name, prop.GetValue(x));
+                    }
                 }
                 return expo;
             });
