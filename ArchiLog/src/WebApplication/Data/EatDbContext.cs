@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +12,8 @@ namespace WebApplication.Data
     //classe principale d'accès aux données
     public class EatDbContext : DbContext
     {
+        public static readonly ILoggerFactory SqlLogger = LoggerFactory.Create(builder => builder.AddConsole());
+
         //constructeur qui appel le constructeur parent 
         public EatDbContext(DbContextOptions options) : base(options)
         {

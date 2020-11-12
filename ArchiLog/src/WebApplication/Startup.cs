@@ -30,7 +30,8 @@ namespace WebApplication
             services.AddControllers();
             //ajout de la dép. EatDbContext. Configuration avec le type de bdd et chaine de connexion
             services.AddDbContext<EatDbContext>(db =>
-                db.UseSqlServer(Configuration.GetConnectionString("EatConnectionString"))
+                db.UseLoggerFactory(EatDbContext.SqlLogger)
+                    .UseSqlServer(Configuration.GetConnectionString("EatConnectionString"))
             );
         }
 

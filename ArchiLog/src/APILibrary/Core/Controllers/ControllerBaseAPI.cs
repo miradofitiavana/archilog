@@ -77,6 +77,13 @@ namespace APILibrary.Core.Controllers
         [HttpGet("{id}")]
         public virtual async Task<ActionResult<TModel>> GetById([FromRoute] int id, [FromQuery] string fields)
         {
+            var query = _context.Set<TModel>().AsQueryable()
+            .Where(x => x.ID == 2)
+            .OrderBy(x => x.ID)
+            .Select(x =>   x.ID );
+
+            var resultat = query.ToList();
+
             TModel result = await _context.Set<TModel>().FindAsync(id);
             if (result != null)
             {
