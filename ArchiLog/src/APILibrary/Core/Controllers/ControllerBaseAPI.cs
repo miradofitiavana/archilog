@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.Dynamic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Net;
 using System.Reflection;
 using System.Text;
@@ -32,7 +33,25 @@ namespace APILibrary.Core.Controllers
         [HttpGet]
         public virtual async Task<ActionResult<IEnumerable<dynamic>>> GetAllAsync([FromQuery] string fields)
         {
-            var results = await _context.Set<TModel>().ToListAsync();
+            //solutiuon 2
+            var tab = fields.Split(',');
+            var parameter = Expression.Parameter(typeof(TModel), "x");
+
+            var membersExpression = tab.Select(y => Expression.Property(parameter, y));
+
+            var membersAssignment = membersExpression.Select(z => Expression.Bind(z.Member, z));
+
+            var body = Expression.MemberInit(Expression.New(typeof(TModel)), membersAssignment);
+
+            var lambda = Expression.Lambda<Func<TModel, dynamic>>(body, parameter);
+
+            var query = _context.Set<TModel>().AsQueryable();
+
+            var results = await  query.Select(lambda).ToListAsync();
+
+            //return result;
+
+            //var results = await _context.Set<TModel>().ToListAsync();
             //solution 1
             if (!string.IsNullOrWhiteSpace(fields))
             {
@@ -77,17 +96,34 @@ namespace APILibrary.Core.Controllers
         [HttpGet("{id}")]
         public virtual async Task<ActionResult<TModel>> GetById([FromRoute] int id, [FromQuery] string fields)
         {
-            var query = _context.Set<TModel>().AsQueryable()
-            .Where(x => x.ID == 2)
-            .OrderBy(x => x.ID)
-            .Select(x =>   x.ID );
+            //solution 2: optimisation de la requete SQL
+            var tab = new List<string>(fields.Split(','));
+            if (!tab.Contains("id"))
+                tab.Add("id");
 
-            var resultat = query.ToList();
+            var parameter = Expression.Parameter(typeof(TModel), "x");
+                        
+            var membersExpression = tab.Select(y => Expression.Property(parameter, y));
 
-            TModel result = await _context.Set<TModel>().FindAsync(id);
+            var membersAssignment = membersExpression.Select(z => Expression.Bind(z.Member, z));
+
+            var body = Expression.MemberInit(Expression.New(typeof(TModel)), membersAssignment);
+
+            var lambda = Expression.Lambda<Func<TModel, TModel>>(body, parameter);
+
+            var query = _context.Set<TModel>().AsQueryable();
+            
+            var result = query.Select(lambda).SingleOrDefault(x => x.ID == id);
+
+
+            //return resultat;
+
+
+            //solution 1 : 
+            //TModel result = await _context.Set<TModel>().FindAsync(id);
             if (result != null)
             {
-                //solution 1
+                
                 if (!string.IsNullOrWhiteSpace(fields))
                 {
                     var tabFields = fields.Split(',');
