@@ -19,26 +19,6 @@ namespace WebApplication.Controllers
         {
         }
 
-        /*[HttpGet("search")]
-        public async Task<ActionResult<IEnumerable<Customer>>> SearchCustomersAsync()
-        {
-            var results = await _context.Customers.ToListAsync();
-            return results;
-        }*/
-        /*
-        [HttpPost]
-        public async Task<ActionResult<Customer>> CreateCustomer([FromBody]Customer item)
-        {
-            if (ModelState.IsValid)
-            {
-                _context.Add(item);
-                await _context.SaveChangesAsync();
-                return item;
-            }
-            else
-            {
-                return BadRequest(ModelState);
-            }
-        }*/
+        
     }
 }

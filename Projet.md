@@ -121,7 +121,12 @@ Pour tout autre type de fichier, veuillez demander à l'enseignant si son inclus
 La soutenance dure 20 minutes durant lesquelles les membres présentent leur travail. Un échange de questions peut se faire entre le professeur et les membres du groupe.
 
 Les groupes sont les suivants:
--
+- "1" : GRUMBERG Régis, MATOUGUI Wassim
+- "La fraiche" : ORARD Thomas, MARIN MUNOZ Nicolas, SUSANTO Kevlin
+- "Groupe 3" : BIBI	Cylia, NGUIMATIEU Gladis Natacha, RAMANOELISON	Miradofitiavana
+- "Groupe 4" : BEN AICHA Chaima, GUIRIABOYE	Guillaume, MASNOUHOU Ayoub
+- "ArchilLog_DJM" : DO David, NDIAYE Mamadou, TWISHIME Jean-Luc
+- "Groupe 6" : DIALLO Ismaila, TEGUIA Polla Joël
 
 Les horaires de passage des groupes sont les suivants:
  
