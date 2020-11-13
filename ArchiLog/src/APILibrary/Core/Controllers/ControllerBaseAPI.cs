@@ -1,4 +1,5 @@
 ﻿using APILibrary.Core.Attributes;
+using APILibrary.Core.Extensions;
 using APILibrary.Core.Models;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -33,62 +34,23 @@ namespace APILibrary.Core.Controllers
         [HttpGet]
         public virtual async Task<ActionResult<IEnumerable<dynamic>>> GetAllAsync([FromQuery] string fields)
         {
-            //solutiuon 2
-            var tab = fields.Split(',');
-            var parameter = Expression.Parameter(typeof(TModel), "x");
-
-            var membersExpression = tab.Select(y => Expression.Property(parameter, y));
-
-            var membersAssignment = membersExpression.Select(z => Expression.Bind(z.Member, z));
-
-            var body = Expression.MemberInit(Expression.New(typeof(TModel)), membersAssignment);
-
-            var lambda = Expression.Lambda<Func<TModel, dynamic>>(body, parameter);
-
             var query = _context.Set<TModel>().AsQueryable();
 
-            var results = await  query.Select(lambda).ToListAsync();
-
-            //return result;
-
-            //var results = await _context.Set<TModel>().ToListAsync();
-            //solution 1
             if (!string.IsNullOrWhiteSpace(fields))
             {
+                var tab = fields.Split(',');
 
-                var tabFields = fields.Split(',');
-                var tabNew = results.Select((x) =>
-                {
-                    var expo = new ExpandoObject() as IDictionary<string, object>;
-                    var collectionType = typeof(TModel);
+                // var results = await IQueryableExtensions.SelectDynamic<TModel>(query, tab).ToListAsync();
+                var results = await query.SelectDynamic(tab).ToListAsync();
 
-                    foreach (var field in tabFields)
-                    {
-                        var prop = collectionType.GetProperty(field, BindingFlags.Public | 
-                            BindingFlags.IgnoreCase | BindingFlags.Instance);
-                        if (prop != null)
-                        {
-                            //solution 1B
-                            /*var isPresentAttribute = prop.CustomAttributes
-                                .Any(x => x.AttributeType == typeof(NotJsonAttribute));
-                            if(!isPresentAttribute)*/
-                                expo.Add(prop.Name, prop.GetValue(x));
-                        }
-                        else
-                        {
-                            throw new Exception($"Property {field} does not exist.");
-                        }
-                    }
+                return results.Select((x) => IQueryableExtensions.SelectObject(x, tab)).ToList();
 
-
-                    return expo;
-                });
-                //solution 1A
-                return Ok(ToJsonList(tabNew));
             }
-            //fin solution 1
+            else
+            {
+                return Ok( ToJsonList(await query.ToListAsync()));
+            }
 
-            return Ok(ToJsonList(results));
         }
 
         [ProducesResponseType((int)HttpStatusCode.OK)]
@@ -96,67 +58,37 @@ namespace APILibrary.Core.Controllers
         [HttpGet("{id}")]
         public virtual async Task<ActionResult<TModel>> GetById([FromRoute] int id, [FromQuery] string fields)
         {
-            //solution 2: optimisation de la requete SQL
-            var tab = new List<string>(fields.Split(','));
-            if (!tab.Contains("id"))
-                tab.Add("id");
-
-            var parameter = Expression.Parameter(typeof(TModel), "x");
-                        
-            var membersExpression = tab.Select(y => Expression.Property(parameter, y));
-
-            var membersAssignment = membersExpression.Select(z => Expression.Bind(z.Member, z));
-
-            var body = Expression.MemberInit(Expression.New(typeof(TModel)), membersAssignment);
-
-            var lambda = Expression.Lambda<Func<TModel, TModel>>(body, parameter);
-
             var query = _context.Set<TModel>().AsQueryable();
-            
-            var result = query.Select(lambda).SingleOrDefault(x => x.ID == id);
+            //solution 2: optimisation de la requete SQL
 
-
-            //return resultat;
-
-
-            //solution 1 : 
-            //TModel result = await _context.Set<TModel>().FindAsync(id);
-            if (result != null)
+            if (!string.IsNullOrWhiteSpace(fields))
             {
-                
-                if (!string.IsNullOrWhiteSpace(fields))
+                var tab = new List<string>(fields.Split(','));
+                if (!tab.Contains("id"))
+                    tab.Add("id");
+                var result = query.SelectModel(tab.ToArray()).SingleOrDefault(x => x.ID == id);
+                if (result != null)
                 {
                     var tabFields = fields.Split(',');
-                   
-                        var expo = new ExpandoObject() as IDictionary<string, object>;
-                        var modelType = typeof(TModel);
-
-                        foreach (var field in tabFields)
-                        {
-                            var prop = modelType.GetProperty(field, BindingFlags.Public |
-                                BindingFlags.IgnoreCase | BindingFlags.Instance);
-                            if (prop != null)
-                            {
-                                //solution 1B
-                                /*var isPresentAttribute = prop.CustomAttributes
-                                    .Any(x => x.AttributeType == typeof(NotJsonAttribute));
-                                if(!isPresentAttribute)*/
-                                expo.Add(prop.Name, prop.GetValue(result));
-                            }
-                            else
-                            {
-                                throw new Exception($"Property {field} does not exist.");
-                            }
-                        }
-                    //solution 1B
-                    return Ok(ToJson(expo));
+                    return Ok(IQueryableExtensions.SelectObject(result, tabFields));
                 }
                 else
-                    return Ok(ToJson(result));
+                {
+                    return NotFound(new { Message = $"ID {id} not found" });
+                }
             }
             else
             {
+                var result = query.SingleOrDefault(x => x.ID == id);
+                if (result != null)
+                {
+                    
+                    return Ok(ToJson(result));
+                }
+                else
+                {
                     return NotFound(new { Message = $"ID {id} not found" });
+                }
             }
         }
 
