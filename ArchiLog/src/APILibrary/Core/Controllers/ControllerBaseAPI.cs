@@ -1,8 +1,12 @@
-﻿using APILibrary.Core.Attributes;
+﻿using APILibrary.core.Attributes;
+using APILibrary.core.Helpers;
+using APILibrary.core.Models;
 using APILibrary.Core.Extensions;
-using APILibrary.Core.Models;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
 using System.Dynamic;
@@ -13,44 +17,119 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace APILibrary.Core.Controllers
+namespace APILibrary.core.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public abstract class ControllerBaseAPI<TModel, TContext> : ControllerBase where TModel : ModelBase where TContext : DbContext
+    public class ControllerBaseAPI<TModel, TContext> : ControllerBase where TModel : ModelBase where TContext : DbContext
     {
-        protected readonly TContext _context;
+        public TContext _context;
 
+        private const string LinkHeaderTemplate = "{0}; rel=\"{1}\"";
         public ControllerBaseAPI(TContext context)
         {
             this._context = context;
         }
 
-        //?fields=email,phone
-
-
-
         [ProducesResponseType((int)HttpStatusCode.OK)]
-        [HttpGet]
-        public virtual async Task<ActionResult<IEnumerable<dynamic>>> GetAllAsync([FromQuery] string fields)
+        [HttpGet("search")]
+        public virtual async Task<ActionResult<IEnumerable<dynamic>>> SearchAsync([FromQuery] string fields, [FromQuery] string range, [FromQuery] string asc, [FromQuery] string desc)
         {
+            IQueryCollection requestQuery = Request.Query;
+
             var query = _context.Set<TModel>().AsQueryable();
 
+            // TRIS
+            if (!string.IsNullOrWhiteSpace(asc) || !string.IsNullOrWhiteSpace(desc))
+            {
+                query = query.OrderByDynamic(asc, desc);
+            }
+
+            // FILTRES
+            if (requestQuery != null && requestQuery.Count() > 0)
+            {
+                query = query.WhereDynamic(requestQuery, true);
+            }
+
+            // PAGINATION
+            if (!string.IsNullOrWhiteSpace(range))
+            {
+                var tab = range.Split('-');
+                query = query.TakePageResult(Int32.Parse(tab[0]), Int32.Parse(tab[1]));
+            }
+
+            // RENDU PARTIEL
             if (!string.IsNullOrWhiteSpace(fields))
             {
                 var tab = fields.Split(',');
-
-                // var results = await IQueryableExtensions.SelectDynamic<TModel>(query, tab).ToListAsync();
-                var results = await query.SelectDynamic(tab).ToListAsync();
-
+                query = query.SelectModel(tab);
+                var results = await query.ToListAsync();
                 return results.Select((x) => IQueryableExtensions.SelectObject(x, tab)).ToList();
-
             }
             else
             {
-                return Ok( ToJsonList(await query.ToListAsync()));
+                return Ok(ToJsonList(await query.ToListAsync()));
+            }
+        }
+
+        [ProducesResponseType((int)HttpStatusCode.OK)]
+        [HttpGet]
+        public virtual async Task<ActionResult<IEnumerable<dynamic>>> GetAllAsync([FromQuery] string fields, [FromQuery] string range, [FromQuery] string asc, [FromQuery] string desc)
+        {
+            IQueryCollection requestQuery = Request.Query;
+
+            var query = _context.Set<TModel>().AsQueryable();
+
+            // TRIS
+            if (!string.IsNullOrWhiteSpace(asc) || !string.IsNullOrWhiteSpace(desc))
+            {
+                query = query.OrderByDynamic(asc, desc);
             }
 
+            // FILTRES
+            if (requestQuery != null && requestQuery.Count() > 0)
+            {
+                query = query.WhereDynamic(requestQuery);
+            }
+
+            // PAGINATION
+            if (!string.IsNullOrWhiteSpace(range))
+            {
+                var tab = range.Split('-');
+
+                int total = query.Count();
+
+                query = query.TakePageResult(Int32.Parse(tab[0]), Int32.Parse(tab[1]));
+
+                var linkBuilder = new PageLinkBuilder(Url, "", null, Int32.Parse(tab[0]), Int32.Parse(tab[1]), total);
+
+                List<string> links = new List<string>();
+                if (linkBuilder.FirstPage != null)
+                    links.Add(string.Format(LinkHeaderTemplate, linkBuilder.FirstPage, "first"));
+                if (linkBuilder.PreviousPage != null)
+                    links.Add(string.Format(LinkHeaderTemplate, linkBuilder.PreviousPage, "prev"));
+                if (linkBuilder.NextPage != null)
+                    links.Add(string.Format(LinkHeaderTemplate, linkBuilder.NextPage, "next"));
+                if (linkBuilder.LastPage != null)
+                    links.Add(string.Format(LinkHeaderTemplate, linkBuilder.LastPage, "last"));
+                Response.Headers.Add("Link", string.Join(", ", links));
+
+                Response.Headers.Add("Content-Range", linkBuilder.GetContentRange());
+                Response.Headers.Add("Accept-Ranges", typeof(TModel).Name + " " + total);
+            }
+
+            // RENDU PARTIEL
+            if (!string.IsNullOrWhiteSpace(fields))
+            {
+                var tab = fields.Split(',');
+                query = query.SelectModel(tab);
+                var results = await query.ToListAsync();
+                return results.Select((x) => IQueryableExtensions.SelectObject(x, tab)).ToList();
+            }
+            else
+            {
+                return Ok(ToJsonList(await query.ToListAsync()));
+            }
         }
 
         [ProducesResponseType((int)HttpStatusCode.OK)]
@@ -82,7 +161,6 @@ namespace APILibrary.Core.Controllers
                 var result = query.SingleOrDefault(x => x.ID == id);
                 if (result != null)
                 {
-                    
                     return Ok(ToJson(result));
                 }
                 else
@@ -91,7 +169,6 @@ namespace APILibrary.Core.Controllers
                 }
             }
         }
-
 
         [ProducesResponseType((int)HttpStatusCode.Created)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
@@ -106,6 +183,7 @@ namespace APILibrary.Core.Controllers
             }
             else
             {
+                //   ModelState:  {clé: nom du champ // valeur : ce qui ne va pas sur le champ}
                 return BadRequest(ModelState);
             }
         }
@@ -114,16 +192,16 @@ namespace APILibrary.Core.Controllers
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [HttpPut("{id}")]
-        public virtual async Task<ActionResult<TModel>> UpdateItem([FromRoute] int id, [FromBody] TModel item)
+        public async Task<ActionResult<TModel>> UpdateItem([FromRoute] int id, [FromBody] TModel item)
         {
             if (id != item.ID)
             {
-                return BadRequest();
+                return BadRequest(ModelState);
             }
 
             bool result = await _context.Set<TModel>().AnyAsync(x => x.ID == id);
             if (!result)
-                return NotFound(new { Message = $"ID {id} not found" });
+                return NotFound();
 
             if (ModelState.IsValid)
             {
@@ -144,18 +222,15 @@ namespace APILibrary.Core.Controllers
             }
         }
 
-        [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.NoContent)]
         [ProducesResponseType((int)HttpStatusCode.BadRequest)]
         [HttpDelete("{id}")]
-        public virtual async Task<ActionResult<TModel>> DeleteItem([FromRoute] int id)
+        public async Task<ActionResult<TModel>> RemoveItem([FromRoute] int id)
         {
             TModel item = await _context.Set<TModel>().FindAsync(id);
             if (item == null)
                 return NotFound();
-
             _context.Remove<TModel>(item);
-
             try
             {
                 await _context.SaveChangesAsync();
@@ -165,62 +240,43 @@ namespace APILibrary.Core.Controllers
             {
                 return BadRequest(new { e.Message });
             }
-
-            /*int result = await _context.SaveChangesAsync();
-            if(result != 0)
-            {
-                return NoContent();
-            }
-            else
-            {
-                return BadRequest();
-            }*/
         }
 
-
-
-        protected IEnumerable<dynamic> ToJsonList(IEnumerable<dynamic> tab)
+        protected IEnumerable<dynamic> ToJsonList(IEnumerable<object> tab)
         {
-            var tabNew = tab.Select((x) =>
-            {
-                return ToJson(x);
-            });
+            var tabNew = tab.Select((x) => ToJson(x));
             return tabNew;
         }
 
-        protected dynamic ToJson(dynamic item)
+        protected dynamic ToJson(object item)
         {
-            var expo = new ExpandoObject() as IDictionary<string, object>;
-
+            var expandoDict = new ExpandoObject() as IDictionary<string, object>;
             var collectionType = typeof(TModel);
-
             IDictionary<string, object> dico = item as IDictionary<string, object>;
+
             if (dico != null)
             {
-                foreach (var propDyn in dico)
+                foreach (var prop in dico)
                 {
-                    var propInTModel = collectionType.GetProperty(propDyn.Key, BindingFlags.Public |
-                            BindingFlags.IgnoreCase | BindingFlags.Instance);
+                    var propInTModel = collectionType.GetProperty(prop.Key, BindingFlags.Public | BindingFlags.IgnoreCase | BindingFlags.Instance);
 
-                    var isPresentAttribute = propInTModel.CustomAttributes
-                    .Any(x => x.AttributeType == typeof(NotJsonAttribute));
-
+                    var isPresentAttribute = propInTModel.CustomAttributes.
+                        Any(x => x.AttributeType == typeof(NotJsonAttribute));
                     if (!isPresentAttribute)
-                        expo.Add(propDyn.Key, propDyn.Value);
+                        expandoDict.Add(prop.Key, prop.Value);
                 }
             }
             else
             {
                 foreach (var prop in collectionType.GetProperties())
                 {
-                    var isPresentAttribute = prop.CustomAttributes
-                    .Any(x => x.AttributeType == typeof(NotJsonAttribute));
-
+                    var isPresentAttribute = prop.CustomAttributes.
+                       Any(x => x.AttributeType == typeof(NotJsonAttribute));
                     if (!isPresentAttribute)
-                        expo.Add(prop.Name, prop.GetValue(item));
+                        expandoDict.Add(prop.Name, prop.GetValue(item));
                 }
             }
-            return expo;
+            return expandoDict;
         }
     }
 }

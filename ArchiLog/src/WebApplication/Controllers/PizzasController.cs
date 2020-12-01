@@ -1,23 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using APILibrary.Core.Controllers;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
+﻿using APILibrary.core.Attributes;
+using APILibrary.core.Controllers;
 using WebApplication.Data;
 using WebApplication.Models;
 
 namespace WebApplication.Controllers
 {
-    [Route("api/[controller]")]
-    [ApiController]
+    [Authorize]
     public class PizzasController : ControllerBaseAPI<Pizza, EatDbContext>
     {
-
-        public PizzasController(EatDbContext context):base(context)
+        public PizzasController(EatDbContext context) : base(context)
         {
         }
+
+       
     }
 }
