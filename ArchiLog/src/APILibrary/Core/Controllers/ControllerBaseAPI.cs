@@ -21,6 +21,7 @@ namespace APILibrary.core.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    //[Authorize]
     public class ControllerBaseAPI<TModel, TContext> : ControllerBase where TModel : ModelBase where TContext : DbContext
     {
         public TContext _context;
@@ -64,7 +65,7 @@ namespace APILibrary.core.Controllers
                 var tab = fields.Split(',');
                 query = query.SelectModel(tab);
                 var results = await query.ToListAsync();
-                return results.Select((x) => IQueryableExtensions.SelectObject(x, tab)).ToList();
+                return Ok(results.Select((x) => IQueryableExtensions.SelectObject(x, tab)).ToList());
             }
             else
             {
@@ -124,7 +125,7 @@ namespace APILibrary.core.Controllers
                 var tab = fields.Split(',');
                 query = query.SelectModel(tab);
                 var results = await query.ToListAsync();
-                return results.Select((x) => IQueryableExtensions.SelectObject(x, tab)).ToList();
+                return Ok(results.Select((x) => IQueryableExtensions.SelectObject(x, tab)).ToList());
             }
             else
             {
@@ -234,7 +235,7 @@ namespace APILibrary.core.Controllers
             try
             {
                 await _context.SaveChangesAsync();
-                return NoContent();
+                return Ok(ToJsonList(await _context.Set<TModel>().ToListAsync()));
             }
             catch (Exception e)
             {

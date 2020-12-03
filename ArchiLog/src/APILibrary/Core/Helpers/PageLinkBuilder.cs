@@ -29,16 +29,16 @@ namespace APILibrary.core.Helpers
             FirstPage = new Uri(urlHelper.Link(routeName, new HttpRouteValueDictionary(routeValues) { { "range", pageFromFirst + "-" + pageToFirst } }));
 
             var pageFromLast = totalRecordCount - 1 - pageSize;
-            var pageToLast = totalRecordCount - 1;
+            var pageToLast = totalRecordCount ;
             LastPage = new Uri(urlHelper.Link(routeName, new HttpRouteValueDictionary(routeValues) { { "range", (pageFromLast < pageToFirst ? pageFromLast : pageToFirst + 1) + "-" + pageToLast } }));
-
+            
             if (pageFrom > 0)
             {
                 var pageToPrev = pageFrom - 1;
                 var pageFromPrev = pageToPrev - pageSize;
                 PreviousPage = new Uri(urlHelper.Link(routeName, new HttpRouteValueDictionary(routeValues) { { "range", (pageFromPrev >= 0 ? pageFromPrev : 0) + "-" + pageToPrev } }));
             }
-
+            
             if (pageTo < totalRecordCount)
             {
                 var pageFromNext = pageTo + 1;

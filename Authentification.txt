@@ -1,0 +1,2 @@
+Nous avons mis l'attribut [Authorize] au niveau de PizzasController pour pouvoir le tester le CustomersController sans authentification.
+Quand ce sera utilisé il faudra enlevé l'attribut au niveau de PizzasController et le mettre au niveau de ControllerBaseAPI.

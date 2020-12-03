@@ -1,0 +1,9 @@
+Groupe 3 : 
+- BIBI Cylia
+- NGUIMATIEU Gladis Natacha
+- RAMANOELISON Miradofitiavana
+
+Responsabilité : 
+- Cylia : Pagination - Web API
+- Natacha : Tris - Recherche - Tests Unitaires
+- Mirado : Filtres - Authentification

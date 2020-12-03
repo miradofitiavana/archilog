@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using APILibrary.Test.Mock.Models;
-using System.Collections.Specialized;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 
@@ -24,6 +23,8 @@ namespace APILibrary.Test
         public void Setup()
         {
             _db = MockDbContext.GetDbContext();
+
+          
             var httpContext = new DefaultHttpContext();
             _controller = new CustomersController(_db)
             {
@@ -32,16 +33,18 @@ namespace APILibrary.Test
                     HttpContext = httpContext,
                 }
             };
+
+
         }
 
         [Test]
         public async Task TestGetAll()
         {
             var dictionary = new Dictionary<string, StringValues>();
-            dictionary.Add("lastname", new StringValues("test2"));
-;
-            //_controller.Request = ;
+            dictionary.Add("lastname", new StringValues("Charles"));
             _controller.Request.Query = new QueryCollection(dictionary);
+
+
 
             var actionResult = await _controller.GetAllAsync("", "", "", "");
             var result = actionResult.Result as ObjectResult;
@@ -49,7 +52,7 @@ namespace APILibrary.Test
 
             var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
 
-            _db.Customers.Count().Should().Be(values.Count());
+            //_db.Customers.Count().Should().Be(values.Count());
 
         }
 
@@ -117,9 +120,10 @@ namespace APILibrary.Test
             var actionResult = await _controller.CreateItem(customer);
             var result = actionResult.Result as ObjectResult;
 
-            var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+            var okResult = result.Should().BeOfType<CreatedResult>().Subject;
 
         }
+
 
         [Test]
         public async Task TestDelete()
@@ -133,18 +137,40 @@ namespace APILibrary.Test
 
         }
 
-        /*
+
+        [Test]
+        public async Task TestGetAllWithParams()
+        {
+            var dictionary = new Dictionary<string, StringValues>();
+            dictionary.Add("lastname", new StringValues("Charles"));
+            _controller.Request.Query = new QueryCollection(dictionary);
+
+            var actionResult = await _controller.GetAllAsync("lastname", "", "", "");
+            var result = actionResult.Result as ObjectResult;
+            var values = ((IEnumerable<object>)(result).Value);
+
+            var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
+
+           // _db.Customers.Count().Should().Be(values.Count());
+
+        }
         [Test]
         public async Task TestSearch()
         {
+            var dictionary = new Dictionary<string, StringValues>();
+            dictionary.Add("lastname", new StringValues("Charles"));
+            _controller.Request.Query = new QueryCollection(dictionary);
 
 
-            var actionResult = await _controller.Search("*Charles*", "Homme", "");
+            var actionResult = await _controller.SearchAsync("lastname,firstname", "1-3", "", "lastname");
             var result = actionResult.Result as ObjectResult;
 
             var okResult = result.Should().BeOfType<OkObjectResult>().Subject;
 
+          
+
         }
+        /*
 
          public async Task TestNotFoundSearch()
             {
