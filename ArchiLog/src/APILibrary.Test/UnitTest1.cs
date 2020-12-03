@@ -8,6 +8,9 @@ using System.Threading.Tasks;
 using System.Collections.Generic;
 using System.Linq;
 using APILibrary.Test.Mock.Models;
+using System.Collections.Specialized;
+using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
 
 namespace APILibrary.Test
 {
@@ -21,12 +24,24 @@ namespace APILibrary.Test
         public void Setup()
         {
             _db = MockDbContext.GetDbContext();
-            _controller = new CustomersController(_db);
+            var httpContext = new DefaultHttpContext();
+            _controller = new CustomersController(_db)
+            {
+                ControllerContext = new ControllerContext()
+                {
+                    HttpContext = httpContext,
+                }
+            };
         }
 
         [Test]
         public async Task TestGetAll()
         {
+            var dictionary = new Dictionary<string, StringValues>();
+            dictionary.Add("lastname", new StringValues("test2"));
+;
+            //_controller.Request = ;
+            _controller.Request.Query = new QueryCollection(dictionary);
 
             var actionResult = await _controller.GetAllAsync("", "", "", "");
             var result = actionResult.Result as ObjectResult;
